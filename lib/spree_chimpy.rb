@@ -13,8 +13,8 @@ module Spree::Chimpy
     yield(Spree::Chimpy::Config)
   end
 
-  def enqueue(event, object)
-    payload = {class: object.class.name, id: object.id, object: object}
+  def enqueue(event, object, options = {})
+    payload = {class: object.class.name, id: object.id, object: object, options: options}
     ActiveSupport::Notifications.instrument("spree.chimpy.#{event}", payload)
   end
 
@@ -134,14 +134,17 @@ module Spree::Chimpy
       object = payload[:object] || payload[:class].constantize.find(payload[:id])
 
       case event
-      when :order
-        orders.sync(object)
-      when :cart
-        carts.sync(object)
-      when :subscribe
-        list.subscribe(object.email, merge_vars(object), customer: object.is_a?(Spree.user_class))
-      when :unsubscribe
-        list.unsubscribe(object.email)
+        when :order
+          orders.sync(object)
+        when :cart
+          carts.sync(object)
+        when :subscribe
+          options = payload[:options]
+          options[:customer] = object.is_a?(Spree.user_class)
+
+          list.subscribe(object.email, merge_vars(object), options)
+        when :unsubscribe
+          list.unsubscribe(object.email)
       end
     rescue => e
       Rails.logger.error '**********   BEGIN: SPREE CHIMPY ERROR TRACE   **********'

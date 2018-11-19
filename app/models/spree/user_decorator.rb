@@ -7,6 +7,11 @@ if Spree.user_class
 
     delegate :subscribe, :resubscribe, :unsubscribe, to: :subscription
 
+    def notify_mail_chimp(options = {})
+      # If a user has been successfully created, create a new user on MailChimp.
+      Spree::Chimpy.enqueue(:subscribe, self, options) if Spree::Chimpy.configured?
+    end
+
   private
     def subscription
       Spree::Chimpy::Subscription.new(self)
