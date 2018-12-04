@@ -1,4 +1,5 @@
 require 'digest'
+require 'multi_json'
 
 module Spree::Chimpy
   module Interface
@@ -25,14 +26,29 @@ module Spree::Chimpy
         log "Subscribing #{email} to #{@list_name}"
 
         begin
-          api_member_call(email)
-            .upsert(body: {
-              email_address: email,
-              status: "subscribed",
-              merge_fields: merge_vars,
-              email_type: 'html'
-            }) #, @double_opt_in, true, true, @send_welcome_email)
+          data = {
+            email_address: email,
+            status: "subscribed",
+            merge_fields: merge_vars,
+            email_type: 'html'
+          }
 
+          if options[:interests]
+            data[:interests] = options[:interests]
+          end
+
+          Rails.logger.info(process: 'SPREE_CHIMPY', message: "Subscribe Data:")
+          Rails.logger.info(process: 'SPREE_CHIMPY', message: "#{data}")
+
+          api_member_call(email)
+            .upsert(body: data) #, @double_opt_in, true, true, @send_welcome_email)
+
+          json_data = MultiJson.dump(data)
+
+          Rails.logger.info(process: 'SPREE_CHIMPY', message: "JSON:")
+          Rails.logger.info(process: 'SPREE_CHIMPY', message: "#{json_data}")
+
+          # add to customer segment
           segment([email]) if options[:customer]
         rescue Gibbon::MailChimpError => ex
           log "Subscriber #{email} rejected for reason: [#{ex.raw_body}]"
