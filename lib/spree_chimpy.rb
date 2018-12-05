@@ -142,8 +142,7 @@ module Spree::Chimpy
           options = payload[:options]
           options[:customer] = object.is_a?(Spree.user_class)
 
-          Rails.logger.info(process: 'SPREE_CHIMPY', message: "Subcribe user with options: #{options}")
-          list.subscribe(object.email, merge_vars(object), options)
+          list.subscribe(object.email, Spree::Chimpy::Interface::MergeFieldBuilder.build_merge_fields(object), options)
         when :unsubscribe
           list.unsubscribe(object.email)
       end
